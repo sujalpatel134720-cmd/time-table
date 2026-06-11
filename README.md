@@ -1,1 +1,564 @@
-# time-table
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCA Sem-5 Timetable & Clock</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .clock-container {
+            text-align: center;
+            background: #1e293b;
+            padding: 35px 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 2px solid #334155;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .timezone-label {
+            font-size: 0.9rem;
+            color: #f97316;
+            font-weight: 600;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        #date-display {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            font-weight: 500;
+            margin-bottom: 25px;
+            letter-spacing: 0.5px;
+        }
+
+        #clock {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: #38bdf8;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        }
+
+        #sync-status {
+            font-size: 0.8rem;
+            color: #22c55e;
+            margin-top: 15px;
+        }
+
+        /* Timetable Section Styles */
+        .timetable-container {
+            background: #1e293b;
+            border-radius: 20px;
+            border: 2px solid #334155;
+            padding: 25px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .timetable-header-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .timetable-header-zone {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+        }
+
+        .timetable-title {
+            font-size: 1.3rem;
+            color: #38bdf8;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        /* Filter Controls Styling */
+        .controls-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .filter-container select, .filter-container input[type="date"] {
+            background-color: #0f172a;
+            color: #f8fafc;
+            border: 2px solid #475569;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+        }
+
+        .filter-container select:focus, .filter-container input[type="date"]:focus {
+            border-color: #38bdf8;
+        }
+
+        .table-scroll-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 400px;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            border: 1px solid #475569;
+            padding: 12px 8px;
+            text-align: center;
+            white-space: pre-line;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #334155;
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
+        td:first-child {
+            font-weight: 600;
+            color: #38bdf8;
+            background-color: #1a2333;
+        }
+
+        /* Standard alternating rows */
+        tr.active-row:nth-child(even) {
+            background-color: #1e293b;
+        }
+        tr.active-row:nth-child(odd) {
+            background-color: #161f30;
+        }
+
+        /* --- UPDATED FINISHED LECTURE BLUE STYLES --- */
+        tr.finished-row {
+            background-color: #1e3a8a !important; 
+            color: #93c5fd; 
+            opacity: 0.85;
+        }
+
+        tr.finished-row td {
+            border-color: #2563eb; 
+        }
+
+        tr.finished-row td:first-child {
+            color: #60a5fa !important; 
+            background-color: #1e3a8a !important;
+        }
+
+        .no-class {
+            text-align: center;
+            color: #94a3b8;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container">
+        <h1>Current Time</h1>
+        <div class="timezone-label">India Standard Time</div>
+        <div id="date-display">Loading Date...</div>
+        <div id="clock">Loading Time...</div>
+        <div id="sync-status">Syncing with server...</div>
+    </div>
+
+    <div class="timetable-container">
+        <div class="timetable-header-zone">
+            <div class="timetable-title" id="table-day-title">Timetable (BCA Sem-5)</div>
+            
+            <div class="controls-group">
+                <div class="filter-container">
+                    <input type="date" id="date-picker" onchange="handleDateChange()">
+                </div>
+
+                <div class="filter-container">
+                    <select id="day-selector" onchange="handleDayChange()">
+                        <option value="AUTO">Selected Date (Auto)</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+
+                <div class="filter-container">
+                    <select id="division-selector" onchange="handleFilterChange()">
+                        <option value="ALL">Show All Divisions</option>
+                        <option value="5-A">Division 5-A</option>
+                        <option value="5-B" selected>Division 5-B</option>
+                        <option value="5-C">Division 5-C</option>
+                        <option value="5-D">Division 5-D</option>
+                        <option value="5-E">Division 5-E</option>
+                        <option value="5-F">Division 5-F</option>
+                        <option value="5-G">Division 5-G</option>
+                        <option value="5-H">Division 5-H</option>
+                        <option value="5-I">Division 5-I</option>
+                        <option value="5-J">Division 5-J</option>
+                        <option value="5-K">Division 5-K</option>
+                        <option value="5-L">Division 5-L</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="table-scroll-wrapper" id="table-wrapper"></div>
+    </div>
+
+    <script>
+        let timeOffset = 0; 
+        const fiveMinutesInMs = 300000; 
+
+        const timetableData = {
+            "Monday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (306)", "5-D (CR-11)", "5-E (CR-12)", "5-F (CR-13)", "5-G (CR-14)", "5-H (CR-6)", "5-I (307)", "5-J (308)", "5-K (309)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "ERP(KS)\nST(ND)", "ST(ND)\nNGD(DP)", "CYS(DP)\nJAVA(SM)", "ST(SSC)\nERP(KYP)", "CYS(SSC)", "JAVA(PSP)\nST(KJP)", "ERP(KP)\nJAVA(PSP)", "ST(KJP)\nNGD(SB)", "NGD(SB)\nCYS(VS)", "CYS(VS)\nERP(CP)", "ERP(KP)", "ASP(TP)\nLAB-1"],
+                    ["10:00 - 11:00", "ERP(KS)\nST(ND)", "ST(ND)\nNGD(DP)", "CYS(DP)\nJAVA(SM)", "ST(SSC)\nERP(KYP)", "CYS(SSC)", "JAVA(PSP)\nST(KJP)", "ERP(KP)\nJAVA(PSP)", "ST(KJP)\nNGD(SB)", "NGD(SB)\nCYS(VS)", "CYS(VS)\nERP(CP)", "ERP(KP)", "ASP(TP)\nLAB-1"],
+                    ["11:00 - 12:00", "NGD(DP)-A\nLAB-7", "ERP(KS)\nCYS(JDP)", "ERP(KP)\nNGD(DP)", "NGD(PS)-D\nLAB-5", "JAVA(SM)-E\nLAB-3\nST(KIP)", "JAVA(PSP)-F\nLAB-4", "ST(KIP)\nNGD(SB)", "CYS(SSC)\nERP(KP)", "NGD(SB)-I\nLAB-6", "NGD(JDP)-J\nLAB-1", "JAVA (VJ)\nJAVA(VJ)-K\nLAB-4", "ASP(NB)\nPHP(JDP)"],
+                    ["12:00 - 01:00", "NGD(DP)-A\nLAB-7", "ERP(KS)\nCYS(JDP)", "ERP(KP)\nNGD(DP)", "NGD(PS)-D\nLAB-5", "JAVA(SM)-E\nLAB-3\nST(KIP)", "JAVA(PSP)-F\nLAB-4", "ST(KIP)\nNGD(SB)", "CYS(SSC)\nERP(KP)", "NGD(SB)-I\nLAB-6", "NGD(JDP)-J\nLAB-1", "JAVA (VJ)\nJAVA(VJ)-K\nLAB-4", "ASP(NB)\nPHP(JDP)"],
+                    ["01:00 - 02:00", "NGD(DP)-A\nLAB-7", "ERP(KS)\nCYS(JDP)", "ERP(KP)\nNGD(DP)", "NGD(PS)-D\nLAB-5", "JAVA(SM)-E\nLAB-3\nST(KIP)", "JAVA(PSP)-F\nLAB-4", "ST(KIP)\nNGD(SB)", "CYS(SSC)\nERP(KP)", "NGD(SB)-I\nLAB-6", "NGD(JDP)-J\nLAB-1", "JAVA (VJ)\nJAVA(VJ)-K\nLAB-4", "ASP(NB)\nPHP(JDP)"]
+                ]
+            },
+            "Tuesday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (302)", "5-D (CR-11)", "5-E (CR-6)", "5-F (CR-16)", "5-G (CR-14)", "5-H (CR-10)", "5-I (302)", "5-J (308)", "5-K (309)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "CYS(JDP)\nERP(KS)", "JAVA(ND)-B\nLAB-3", "NGD(DP)-C\nLAB-7", "JAVA(SM)-D\nLAB-5", "NGD(PS)\nERP(KYP)", "ERP(KYP)\nCYS(SSC)", "JAVA(PSP)-G\nLAB-1", "NGD(SB)-H\nLAB-4", "ST(KIP)\nJAVA(JR)", "CYS(VS)\nST(KJP)", "ERP(KP)\nST(RM)", "NET(SSC)\nPHP(JDP)"],
+                    ["10:00 - 11:00", "CYS(JDP)\nERP(KS)", "JAVA(ND)-B\nLAB-3", "NGD(DP)-C\nLAB-7", "JAVA(SM)-D\nLAB-5", "NGD(PS)\nERP(KYP)", "ERP(KYP)\nCYS(SSC)", "JAVA(PSP)-G\nLAB-1", "NGD(SB)-H\nLAB-4", "ST(KIP)\nJAVA(JR)", "CYS(VS)\nST(KJP)", "ERP(KP)\nST(RM)", "NET(SSC)\nPHP(JDP)"],
+                    ["11:00 - 12:00", "JAVA (ND)-A\nLAB-7", "CYS(JDP)\nERP(KS)", "ERP(KP)\nST(SSC)", "ST(SSC)\nCYS(DP)", "JAVA(SM)", "NGD(SB)", "ST(KIP)", "ERP(KP)", "JAVA(JR)-I\nLAB-4", "NGD(JDP)", "CYS(VS)", "ASP(NB)"],
+                    ["12:00 - 01:00", "JAVA (ND)-A\nLAB-7", "CYS(JDP)\nERP(KS)", "ERP(KP)\nST(SSC)", "ST(SSC)\nCYS(DP)", "JAVA(SM)", "NGD(SB)", "ST(KIP)", "ERP(KP)", "JAVA(JR)-I\nLAB-4", "NGD(JDP)", "CYS(VS)", "ASP(NB)"],
+                    ["01:00 - 02:00", "JAVA (ND)-A\nLAB-7", "CYS(JDP)\nERP(KS)", "ERP(KP)\nST(SSC)", "ST(SSC)\nCYS(DP)", "JAVA(SM)", "NGD(SB)", "ST(KIP)", "ERP(KP)", "JAVA(JR)-I\nLAB-4", "NGD(JDP)", "CYS(VS)", "ASP(NB)"],
+                    ["02:00 - 03:00", "-", "-", "-", "-", "CYS(SSC)", "ST(KIP)", "ERP(KP)", "JAVA(PSP)", "-", "ERP(CP)", "NGD(JDP)", "MAD(KYP)"]
+                ]
+            },
+            "Wednesday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (302)", "5-D (CR-10)", "5-E (CR-9)", "5-F (308)", "5-G (306)", "5-H (CR-6)", "5-I (307)", "5-J (301)", "5-K (309)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "NGD(DP)\nERP(KS)", "ERP(KS)\nJAVA(ND)", "JAVA(SM)-C\nLAB-7", "ERP(KYP)\nST(SSC)", "NGD(PS)-E\nLAB-5", "NGD(SB)-F\nLAB-4", "CYS(SSC)\nERP(KP)", "JAVA(PSP)-H\nLAB-3", "CYS(VS)\nST(KIP)", "JAVA(JR)-J\nLAB-6", "NGD(JDP)-K\nLAB-1", "PHP(JDP)\nLAB-1"],
+                    ["10:00 - 11:00", "NGD(DP)\nERP(KS)", "ERP(KS)\nJAVA(ND)", "JAVA(SM)-C\nLAB-7", "ERP(KYP)\nST(SSC)", "NGD(PS)-E\nLAB-5", "NGD(SB)-F\nLAB-4", "CYS(SSC)\nERP(KP)", "JAVA(PSP)-H\nLAB-3", "CYS(VS)\nST(KIP)", "JAVA(JR)-J\nLAB-6", "NGD(JDP)-K\nLAB-1", "PHP(JDP)\nLAB-1"],
+                    ["11:00 - 12:00", "CYS(JDP)\nJAVA(ND)", "NGD(DP)\nCYS(JDP)", "ST(SSC)\nERP(KP)", "NGD(PS)\nCYS(DP)", "ERP(KYP)\nST(KIP)", "CYS(SSC)\nERP(KYP)", "NGD(SB)\nST(KIP)", "ST(KJP)\nCYS(SSC)", "JAVA(JR)\nERP(KP)", "NGD(JDP)\nERP(CP)", "ST(RM)\nCYS(VS)", "ASP(NB)"],
+                    ["12:00 - 01:00", "CYS(JDP)\nJAVA(ND)", "NGD(DP)\nCYS(JDP)", "ST(SSC)\nERP(KP)", "NGD(PS)\nCYS(DP)", "ERP(KYP)\nST(KIP)", "CYS(SSC)\nERP(KYP)", "NGD(SB)\nST(KIP)", "ST(KJP)\nCYS(SSC)", "JAVA(JR)\nERP(KP)", "NGD(JDP)\nERP(CP)", "ST(RM)\nCYS(VS)", "ASP(NB)"],
+                    ["01:00 - 02:00", "CYS(JDP)\nJAVA(ND)", "NGD(DP)\nCYS(JDP)", "ST(SSC)\nERP(KP)", "NGD(PS)\nCYS(DP)", "ERP(KYP)\nST(KIP)", "CYS(SSC)\nERP(KYP)", "NGD(SB)\nST(KIP)", "ST(KJP)\nCYS(SSC)", "JAVA(JR)\nERP(KP)", "NGD(JDP)\nERP(CP)", "ST(RM)\nCYS(VS)", "ASP(NB)"]
+                ]
+            },
+            "Thursday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (306)", "5-D (307)", "5-E (308)", "5-F (309)", "5-G (CR-6)", "5-H (CR-10)", "5-I (CR-15)", "5-J (CR-15)", "5-K (303)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "NGD(DP)-A\nLAB-7", "JAVA(ND)-B\nLAB-3", "JAVA(SM)", "NGD(PS)-D\nLAB-5", "ERP(KYP)", "JAVA (PSP)-F\nLAB-4", "NGD(SB)-G\nLAB-6", "CYS(SSC)", "ST(KJP)", "NGD(JDP)-J\nLAB-1", "ERP(KP)", "MAD(KYP)"],
+                    ["10:00 - 11:00", "NGD(DP)-A\nLAB-7", "JAVA(ND)-B\nLAB-3", "JAVA(SM)", "NGD(PS)-D\nLAB-5", "ERP(KYP)", "JAVA (PSP)-F\nLAB-4", "NGD(SB)-G\nLAB-6", "CYS(SSC)", "ST(KJP)", "NGD(JDP)-J\nLAB-1", "ERP(KP)", "MAD(KYP)"],
+                    ["11:00 - 12:00", "NGD(DP)-A\nLAB-7", "JAVA(ND)-B\nLAB-3", "NGD(DP)-C\nLAB-7", "JAVA(SM)", "ST(KJP)", "CYS(SSC)", "ERP(KP)", "ERP(KP)", "ERP(KP)", "ST(KIP)", "JAVA(VJ)", "NET(SSC)"],
+                    ["12:00 - 01:00", "ERP(KS)", "ERP(KS)", "NGD(DP)-C\nLAB-7", "JAVA(SM)", "CYS(SSC)", "JAVA(PSP)", "ERP(KP)", "ST(KJP)", "NGD(SB)-I\nLAB-6", "ST(KIP)", "JAVA(VJ)", "MENT(SB)"],
+                    ["01:00 - 02:00", "ST(ND)", "ST(ND)", "CYS(DP)", "ERP(KYP)", "JAVA(SM)", "JAVA(PSP)", "CYS(SSC)", "NGD(SB)", "NGD(SB)-I\nLAB-6", "JAVA(JR)", "JAVA(VJ)-K\nLAB-4", "E-COM(KS)\nLAB-6"]
+                ]
+            },
+            "Friday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (301)", "5-D (303)", "5-E (303)", "5-F (309)", "5-G (306)", "5-H (CR-12)", "5-I (CR-14)", "5-J (CR-6)", "5-K (CR-15)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "CYS(JDP)\nST(ND)", "ST(ND)\nCYS(JDP)", "ST(SSC)\nNGD(DP)", "-", "JAVA(SM)-E\nLAB-4", "ST(KIP)", "CYS(SSC)", "ERP(KP)", "ERP(KP)\nCYS(VS)", "JAVA(JR)\nERP(CP)", "CYS(VS)\nST(RM)", "MAD(KYP)"],
+                    ["10:00 - 11:00", "CYS(JDP)\nST(ND)", "ST(ND)\nCYS(JDP)", "ST(SSC)\nNGD(DP)", "-", "JAVA(SM)-E\nLAB-4", "ST(KIP)", "CYS(SSC)", "ERP(KP)", "ERP(KP)\nCYS(VS)", "JAVA(JR)\nERP(CP)", "CYS(VS)\nST(RM)", "MAD(KYP)"],
+                    ["11:00 - 12:00", "JAVA(ND)-A\nLAB-7", "NGD(DP)-B\nLAB-3", "ERP(KP)", "JAVA(SM)-D\nLAB-5", "ST(KIP)\nERP(KYP)", "ERP(KYP)", "NGD(SB)-G\nLAB-6", "CYS(SSC)", "JAVA(JR)-I\nLAB-4", "CYS(VS)\nST(KJP)", "NGD(JDP)-K\nLAB-1", "PHP(JDP)\nNET(SSC)"],
+                    ["12:00 - 01:00", "JAVA(ND)-A\nLAB-7", "NGD(DP)-B\nLAB-3", "ERP(KP)", "JAVA(SM)-D\nLAB-5", "ST(KIP)\nERP(KYP)", "ERP(KYP)", "NGD(SB)-G\nLAB-6", "CYS(SSC)", "JAVA(JR)-I\nLAB-4", "CYS(VS)\nST(KJP)", "NGD(JDP)-K\nLAB-1", "PHP(JDP)\nNET(SSC)"],
+                    ["01:00 - 02:00", "-", "-", "CYS(DP)", "ST(SSC)", "-", "NGD(SB)-F\nLAB-4", "ST(KIP)", "JAVA(PSP)-H\nLAB-3", "-", "-", "-", "-"]
+                ]
+            },
+            "Saturday": {
+                headers: ["Time Slot", "5-A (303)", "5-B (304)", "5-C (306)", "5-D (301)", "5-E (304)", "5-F (309)", "5-G (CR-10)", "5-H (CR-6)", "5-I (CR-13)", "5-J (CR-9)", "5-K (CR-308)", "5-L (CBCS)"],
+                rows: [
+                    ["09:00 - 10:00", "NGD(DP)\n\nJAVA(ND)", "JAVA(ND)\n\nNGD(DP)-B\nLAB-3", "ST(SSC)\n\nJAVA(SM)-C\nLAB-7", "JAVA(SM)\n\nERP (KYP)", "NGD(PS)-E\nLAB-4\n\nNGD(PS)\n\nCYS(SSC)", "NGD(SB)\n\nERP(KYP)", "JAVA(PSP)\n\nCYS(SSC)", "ST(KJP)\n\nJAVA(PSP)", "CYS(VS)\n\nST(KIP)\n\nNGD(SB)", "JAVA(JR)-J\nLAB-6", "ST(RM)\n\nCYS(VS)", "MAD(KYP)\n\nASP(NB)\n\nPHP(JDP)"],
+                    ["10:00 - 11:00", "NGD(DP)\n\nJAVA(ND)", "JAVA(ND)\n\nNGD(DP)-B\nLAB-3", "ST(SSC)\n\nJAVA(SM)-C\nLAB-7", "JAVA(SM)\n\nERP (KYP)", "NGD(PS)-E\nLAB-4\n\nNGD(PS)\n\nCYS(SSC)", "NGD(SB)\n\nERP(KYP)", "JAVA(PSP)\n\nCYS(SSC)", "ST(KJP)\n\nJAVA(PSP)", "CYS(VS)\n\nST(KIP)\n\nNGD(SB)", "JAVA(JR)-J\nLAB-6", "ST(RM)\n\nCYS(VS)", "MAD(KYP)\n\nASP(NB)\n\nPHP(JDP)"],
+                    ["11:00 - 12:00", "NGD(DP)\n\nJAVA(ND)", "JAVA(ND)\n\nNGD(DP)-B\nLAB-3", "ST(SSC)\n\nJAVA(SM)-C\nLAB-7", "JAVA(SM)\n\nERP (KYP)", "NGD(PS)-E\nLAB-4\n\nNGD(PS)\n\nCYS(SSC)", "NGD(SB)\n\nERP(KYP)", "JAVA(PSP)\n\nCYS(SSC)", "ST(KJP)\n\nJAVA(PSP)", "CYS(VS)\n\nST(KIP)\n\nNGD(SB)", "JAVA(JR)-J\nLAB-6", "ST(RM)\n\nCYS(VS)", "MAD(KYP)\n\nASP(NB)\n\nPHP(JDP)"],
+                    ["12:00 - 01:00", "CYS(JDP)\nST(ND)", "ST(ND)", "CYS(DP)", "NGD(PS)\nCYS(DP)", "-", "ST(KIP)\nCYS(SSC)", "JAVA(PSP)-G\nLAB-1", "NGD(SB)-H\nLAB-5", "ERP(KP)", "CYS(VS)\nST(KIP)", "NGD(JDP)\nERP(KP)", "NET(SSC)"],
+                    ["01:00 - 02:00", "CYS(JDP)\nST(ND)", "ST(ND)", "CYS(DP)", "NGD(PS)\nCYS(DP)", "-", "ST(KIP)\nCYS(SSC)", "JAVA(PSP)-G\nLAB-1", "NGD(SB)-H\nLAB-5", "ERP(KP)", "CYS(VS)\nST(KIP)", "NGD(JDP)\nERP(KP)", "NET(SSC)"]
+                ]
+            }
+        };
+
+        // Formats Date objects consistently into YYYY-MM-DD input value strings
+        function formatDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Initialize date picker input with current real local date
+        function initDatePicker() {
+            const today = new Date();
+            document.getElementById('date-picker').value = formatDateString(today);
+        }
+
+        // Helper function to return a specific Day's closest forward calendar date string
+        function getClosestDateForDay(targetDayName) {
+            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const targetDayIndex = weekdays.indexOf(targetDayName);
+            if (targetDayIndex === -1) return formatDateString(new Date());
+
+            let resultDate = new Date();
+            // Loop up to 7 days ahead to find when that weekday hits next on our calendar
+            for (let i = 0; i < 7; i++) {
+                if (resultDate.getDay() === targetDayIndex) {
+                    return formatDateString(resultDate);
+                }
+                resultDate.setDate(resultDate.getDate() + 1);
+            }
+            return formatDateString(new Date());
+        }
+
+        function getActiveDay(correctedTime) {
+            const daySelectorValue = document.getElementById('day-selector').value;
+            
+            // If AUTO mode, resolve day from the Date Picker element's chosen date
+            if (daySelectorValue === "AUTO") {
+                const chosenDateVal = document.getElementById('date-picker').value;
+                if (chosenDateVal) {
+                    const [y, m, d] = chosenDateVal.split('-');
+                    const parsedDate = new Date(y, m - 1, d);
+                    return parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
+                }
+                return correctedTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' });
+            }
+            return daySelectorValue;
+        }
+
+        function isTimeSlotFinished(timeSlotStr, currentCorrectedTime, targetedDay) {
+            try {
+                const pickedDateStr = document.getElementById('date-picker').value;
+                const todayRealStr = formatDateString(new Date());
+                
+                // NEW CONDITION: If picked date is older than today, mark EVERYTHING as finished
+                if (pickedDateStr < todayRealStr) {
+                    return true;
+                }
+                
+                // If picked date is in the future, don't mark anything as finished
+                if (pickedDateStr > todayRealStr) {
+                    return false;
+                }
+
+                // If viewing today's date but manually chose a different day template from dropdown
+                const currentRealDay = currentCorrectedTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' });
+                if (targetedDay !== currentRealDay) {
+                    return false;
+                }
+
+                const parts = timeSlotStr.split('-');
+                if (parts.length < 2) return false;
+                
+                const endTimeStr = parts[1].trim(); 
+                const [endHourStr, endMinStr] = endTimeStr.split(':');
+                
+                let endHour = parseInt(endHourStr, 10);
+                const endMin = parseInt(endMinStr, 10);
+                
+                if (endHour === 1 || endHour === 2 || endHour === 3 || endHour === 12) {
+                    if (endHour !== 12) {
+                        endHour += 12;
+                    }
+                }
+
+                const currentHour = currentCorrectedTime.getHours();
+                const currentMin = currentCorrectedTime.getMinutes();
+
+                if (currentHour > endHour) return true;
+                if (currentHour === endHour && currentMin >= endMin) return true;
+                
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function syncWithTimeServer() {
+            try {
+                const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Kolkata');
+                const data = await response.json();
+                
+                const accurateTime = new Date(data.datetime).getTime();
+                const deviceTime = new Date().getTime();
+                
+                timeOffset = (accurateTime - deviceTime) + fiveMinutesInMs;
+                
+                document.getElementById('sync-status').textContent = "✓ Synced (Running 5 Mins Fast intentionally)";
+                document.getElementById('sync-status').style.color = "#22c55e"; 
+            } catch (error) {
+                document.getElementById('sync-status').textContent = "Using Device Time (Sync Failed)";
+                document.getElementById('sync-status').style.color = "#ef4444";
+            }
+        }
+
+        // Triggered when Calendar date changes
+        function handleDateChange() {
+            const chosenDateVal = document.getElementById('date-picker').value;
+            if (chosenDateVal) {
+                const [y, m, d] = chosenDateVal.split('-');
+                const parsedDate = new Date(y, m - 1, d);
+                const correspondingDay = parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
+                
+                // Automatically set day dropdown to match the selected calendar date
+                document.getElementById('day-selector').value = correspondingDay;
+            }
+            handleFilterChange();
+        }
+
+        // Triggered when explicit week day picker dropdown changes
+        function handleDayChange() {
+            const daySelectorValue = document.getElementById('day-selector').value;
+            
+            if (daySelectorValue === "AUTO") {
+                // Reset date picker back to the real "Today's" calendar date
+                document.getElementById('date-picker').value = formatDateString(new Date());
+            } else {
+                // Dynamically change date picker value to match the next occurring day
+                document.getElementById('date-picker').value = getClosestDateForDay(daySelectorValue);
+            }
+            handleFilterChange();
+        }
+
+        function handleFilterChange() {
+            const deviceTime = new Date().getTime();
+            const correctedTime = new Date(deviceTime + timeOffset);
+            const activeDay = getActiveDay(correctedTime);
+            renderTimetable(activeDay, correctedTime);
+        }
+
+        function renderTimetable(dayName, correctedTime) {
+            const titleEl = document.getElementById('table-day-title');
+            const wrapperEl = document.getElementById('table-wrapper');
+            const selectedDiv = document.getElementById('division-selector').value;
+            
+            titleEl.textContent = `Selected Timetable (${dayName}) — BCA Sem-5`;
+
+            if (!timetableData[dayName]) {
+                wrapperEl.innerHTML = `<div class="no-class">🎉 No classes scheduled for ${dayName}! Enjoy your day off.</div>`;
+                return;
+            }
+
+            const data = timetableData[dayName];
+            
+            let targetHeaderIndices = [0]; 
+            if (selectedDiv !== "ALL") {
+                for (let i = 1; i < data.headers.length; i++) {
+                    if (data.headers[i].startsWith(selectedDiv)) {
+                        targetHeaderIndices.push(i);
+                        break;
+                    }
+                }
+            } else {
+                targetHeaderIndices = data.headers.map((_, idx) => idx);
+            }
+
+            let tableHtml = '<table><thead><tr>';
+            targetHeaderIndices.forEach(idx => {
+                tableHtml += `<th>${data.headers[idx]}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            data.rows.forEach(row => {
+                const initialTimeSlotValue = row[0];
+                const finished = isTimeSlotFinished(initialTimeSlotValue, correctedTime, dayName);
+                
+                const rowClass = finished ? 'finished-row' : 'active-row';
+                
+                tableHtml += `<tr class="${rowClass}">`;
+                targetHeaderIndices.forEach(idx => {
+                    if (idx === 0) {
+                        const displayTime = finished ? `✓ ${row[idx]}` : row[idx];
+                        tableHtml += `<td>${displayTime}</td>`;
+                    } else {
+                        tableHtml += `<td>${row[idx] || '-'}</td>`;
+                    }
+                });
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            wrapperEl.innerHTML = tableHtml;
+        }
+
+        let lastLoggedDay = "";
+        let lastMinuteLogged = -1;
+
+        function updateClock() {
+            const deviceTime = new Date().getTime();
+            const correctedTime = new Date(deviceTime + timeOffset);
+
+            const timeOptions = {
+                timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            };
+
+            const dateOptions = {
+                timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            };
+
+            const indianTimeStr = correctedTime.toLocaleString('en-IN', timeOptions);
+            const indianDateStr = correctedTime.toLocaleDateString('en-IN', dateOptions);
+            
+            document.getElementById('clock').textContent = indianTimeStr;
+            document.getElementById('date-display').textContent = indianDateStr;
+
+            const currentDay = getActiveDay(correctedTime);
+            const currentMinute = correctedTime.getMinutes();
+
+            // Check updates periodically to re-evaluate structural elements
+            if (currentMinute !== lastMinuteLogged || currentDay !== lastLoggedDay) {
+                lastLoggedDay = currentDay;
+                lastMinuteLogged = currentMinute;
+                renderTimetable(currentDay, correctedTime);
+            }
+        }
+
+        // Run Setup
+        initDatePicker();
+        syncWithTimeServer().then(() => {
+            updateClock();
+        });
+
+        setInterval(updateClock, 1000);
+        setInterval(syncWithTimeServer, 300000);
+    </script>
+
+</body>
+</html>
